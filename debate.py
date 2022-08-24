@@ -66,52 +66,82 @@ def main():
         elif cmd.startswith("save"):
             _save_wb(wb, participants, False)
 
-def _check_reg(ws:Worksheet, word):
+def _check_reg(worksheet:Worksheet, word:str):
     """Check the status of a participant on typing their register number.
+
+    If argument given is not a valid number, the function does not execute.
 
     This function prints the details of the participant if they are registered,
     and their status for the debate. If they are not a participant, prompt
     is given to check their name in the list.
+
+    Parameters
+    ---------
+    ws: `Worksheet`
+        The worksheet with which to work with.
+    word: :class:`str`
+        The string that contains the register number along with the 
+        command that needs to be cut out.
     """
     try:
        reg_no = int(re.split("check ", word)[1])
     except:
         return
-    colB = ws['B']
+    colB = worksheet['B']
+    # Iterate through the column to find the register number
     for cell in colB:
         if cell.value == reg_no:
+            # If found, print details.
             row:int = cell.row
             msg = ""
-            for value in ws[row]:
+            for value in worksheet[row]:
                 msg += str(value.value) + " "
             print(msg)
-            if ws.cell(row=row, column=4).value!=None:
+
+            # Print status of participant.
+            if worksheet.cell(row=row, column=4).value!=None:
                 print("Already sent the participant")
-            elif ws.cell(row=row, column=3).value!=None:
+            elif worksheet.cell(row=row, column=3).value!=None:
                 print("Participant is waiting in mini audi.")
             else:
                 print("Participant has not arrived yet.")
             return
+
+    # If register not found, prompt for name.
     print(reg_no, "not found. Check if their name is there with name <name>.")
     name = input("Enter name : ")
     name = "name " + name
-    _check_name(ws, name)
+    _check_name(worksheet, name)
 
-def _check_name(ws:Worksheet, word:str):
+def _check_name(worksheet:Worksheet, word:str):
     """Check if the name exists in the list. If it exists, display their 
-    details including row number."""
+    details including row number.
+    
+    This function prints the details of the participant if their name is found.
+
+    Parameters
+    ----------
+    worksheet: `Worksheet`
+        The worksheet with which to work with.
+    word: `str`
+        The string that contains the name along with the 
+        command that needs to be cut out.
+    """
     try:
         name = re.split("name ", word)[1]
     except:
         return
-    colA = ws['A']
+    colA = worksheet['A']
     found = 0
+
+    # Iterate through the column to find the name.
     for cell in colA:
         if (re.search(cell.value.lower(), name) 
                 or re.search(name, cell.value.lower())):
+            # Print the details of the user if found.
             row = cell.row
             msg = f"{row} "
-            for value in ws[row]:
+            for value in worksheet[row]:
                 msg += str(value.value) + " "
             print(msg)
             found = 1
