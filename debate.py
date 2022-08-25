@@ -298,5 +298,6 @@ def _auto_save_workbook(workbook:Workbook):
     except PermissionError:
         print("Failed to save")
 
+
 if __name__ == "__main__":
     main()
