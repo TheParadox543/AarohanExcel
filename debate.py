@@ -3,8 +3,8 @@ Program to help in Aarohan Debate
 This program has been made to make the Aarohan Debate go smoother.
 
 The program checks whether a participant has registered for the event,
-checks their status, creates a list of participants to be sent in the order 
-by which they have arrived to mini audi. It also allows for changes to be 
+checks their status, logs the time the participant leaves for the venue 
+and what room they go to. It also allows for changes to be 
 done in the case of any mistakes in user entry. 
 
 The program integrates with Excel to save data as it happens. It logs
@@ -35,28 +35,19 @@ def main():
     wb = load_workbook("debate.xlsx")
     ws = wb.active
     cmds = "Commands are: check <no>, add <no>, send [no], "
-    cmds += "name <name>, list, change, cmds"
-    try:
-        with open("list.json", 'r') as file:
-            # Load list of members to be sent to panel room.
-            participants = json.load(file)
-    except:
-        participants = []
-    os.system("start EXCEL.EXE debate.xlsx")
+    cmds += "name <name>, list, change, save, cmds"
     print(cmds)
     # Keep code running until cmd quit entered.
     while(True):
         cmd = input("\nEnter command : ")
         if cmd.lower() == "quit":
-            _save_wb(wb, participants, True)
+            _save_wb(wb, True)
         elif cmd.lower().startswith("check"):
             _check_reg(ws, cmd)
         elif cmd.lower().startswith("add"):
-            participants = _add(ws, participants, cmd)
+            _add(ws, cmd)
         elif cmd.lower().startswith("send"):
-            participants = _send(ws, participants, cmd)
-        elif cmd.startswith("list"):
-            print(participants)
+            _send(wb, ws, cmd)
         elif cmd.lower().startswith("name"):
             _check_name(ws, cmd.lower())
         elif cmd.startswith("change"):
@@ -64,7 +55,7 @@ def main():
         elif cmd.startswith("cmd"):
             print(cmds)
         elif cmd.startswith("save"):
-            _save_wb(wb, participants, False)
+            _save_wb(wb, False)
 
 def _check_reg(worksheet:Worksheet, word:str):
     """Check the status of a participant on typing their register number.
@@ -136,6 +127,8 @@ def _check_name(worksheet:Worksheet, word:str):
 
     # Iterate through the column to find the name.
     for cell in colA:
+        if cell.value is None:
+            return
         if (re.search(cell.value.lower(), name) 
                 or re.search(name, cell.value.lower())):
             # Print the details of the user if found.
@@ -148,13 +141,12 @@ def _check_name(worksheet:Worksheet, word:str):
     if found == 0:
         print(name, "not found.")
 
-def _add(ws:Worksheet, participants:list[int], word):
-    """Add participants to the waiting list when they enter the venue.
-    Also log the time when they enter."""
+def _add(ws:Worksheet, word:str):
+    """Log the time when participants enter."""
     try:
         reg_no = int(re.split("add", word)[1])
     except:
-        return participants
+        return
     for cell in ws['B']:
         if cell.value == reg_no:
             row = cell.row
@@ -166,56 +158,31 @@ def _add(ws:Worksheet, participants:list[int], word):
                 ws.cell(row=row, column=3, value=datetime.now())
                 for value in ws[cell.row]:
                     print(value.value)
-                participants.append(reg_no)
-    try:
-        with open("list.json", "w") as file:
-            json.dump(participants, file)
-    except:
-        print("Couldn't save list")
-        return participants
-    return participants
 
-def _send(ws:Worksheet, participants:list[int], word:str):
+def _send(wb:Workbook, ws:Worksheet, word:str):
     try:
-        reg_no = word[4:]
-    except IndexError:
-        return participants
-    if reg_no == "" or reg_no == " ":
-        try:
-            participant = participants[0]
-        except:
-            print("No one to send now")
-        else:
-            print(participant)
-    elif re.findall("\d", reg_no):
-        reg_no = re.findall('\d+', reg_no)[0]
-        reg_no = int(reg_no)
-        try:
-            participant = participants[0]
-        except:
-            print("No one to send now")
-            return participants
-        if reg_no == participant:
-            for cell in ws['B']:
-                if cell.value == reg_no:
-                    ws.cell(row=cell.row, column=4, value=datetime.now())
-                    for value in ws[cell.row]:
-                        print(value.value)
-            print("Sent", participant)
-            participants.pop(0)
-        else: 
-            print("Wrong participant")
-    try:
-        with open("list.json", "w") as file:
-            json.dump(participants, file)
+        values = re.findall("\d+", word)
+        reg_no = int(values[0])
+        panel_room = int(values[1])
     except:
-        print("Couldn't save list")
-        return participants
-    return participants
+        return
+    for cell in ws['B']:
+        if cell.value == reg_no:
+            ws.cell(row=cell.row, column=4, value=datetime.now())
+            ws.cell(row=cell.row, column=5, value=panel_room)
+            for value in ws[cell.row]:
+                print(value.value)
+            print("Sent", reg_no)
+    try:
+        wb.save("debate.xlsx")
+    except PermissionError:
+        print("Failed to save")
 
 def _change(ws:Worksheet):
     row = int(input("Enter row address : "))
     col = int(input("Enter column address : "))
+    if col not in [1, 2, 5]:
+        return
     if col == 1:
         val = input("Enter name : ")
     elif col == 2:
@@ -226,17 +193,11 @@ def _change(ws:Worksheet):
     for value in ws[row]:
         print(value.value)
 
-def _save_wb(wb:Workbook, participants:list[int], close:bool):
+def _save_wb(wb:Workbook, close:bool):
     try:
         os.system("taskkill/im EXCEL.EXE ")
     except:
         print("Already closed")
-    try:
-        with open("list.json", "w") as file:
-            json.dump(participants, file)
-    except:
-        print("Couldn't save list")
-        return
     else:
         print("List saved")
     if close:
