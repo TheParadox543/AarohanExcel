@@ -32,8 +32,8 @@ from openpyxl.workbook.workbook import Workbook
 def main():
     """The main functioning of the code. Keeps the code running."""
     # Load workbook.
-    wb = load_workbook("debate.xlsx")
-    ws = wb.active
+    workbook = load_workbook("debate.xlsx")
+    worksheet = workbook.active
     cmds = "Commands are: check <no>, add <no>, send [no], "
     cmds += "name <name>, list, change, save, cmds"
     print(cmds)
@@ -41,23 +41,23 @@ def main():
     while(True):
         cmd = input("\nEnter command : ")
         if cmd.lower() == "quit":
-            _save_wb(wb, True)
+            _save_workbook(workbook, True)
         elif cmd.lower().startswith("check"):
-            _check_reg(ws, cmd)
+            _check_reg_no(worksheet, cmd)
         elif cmd.lower().startswith("add"):
-            _add(ws, cmd)
+            _add_participant(workbook, worksheet, cmd)
         elif cmd.lower().startswith("send"):
-            _send(wb, ws, cmd)
+            _send_participant(workbook, worksheet, cmd)
         elif cmd.lower().startswith("name"):
-            _check_name(ws, cmd.lower())
+            _check_name(worksheet, cmd.lower())
         elif cmd.startswith("change"):
-            _change(ws)
+            _change_participant_details(worksheet)
         elif cmd.startswith("cmd"):
             print(cmds)
         elif cmd.startswith("save"):
-            _save_wb(wb, False)
+            _save_workbook(workbook, False)
 
-def _check_reg(worksheet:Worksheet, word:str):
+def _check_reg_no(worksheet:Worksheet, word:str):
     """Check the status of a participant on typing their register number.
 
     If argument given is not a valid number, the function does not execute.
@@ -68,9 +68,9 @@ def _check_reg(worksheet:Worksheet, word:str):
 
     Parameters
     ---------
-    ws: `Worksheet`
+    - worksheet `Worksheet`:
         The worksheet with which to work with.
-    word: :class:`str`
+    - word `str`:
         The string that contains the register number along with the 
         command that needs to be cut out.
     """
@@ -98,7 +98,7 @@ def _check_reg(worksheet:Worksheet, word:str):
                 print("Participant has not arrived yet.")
             return
 
-    # If register not found, prompt for name.
+    # If register number not found, prompt for name.
     print(reg_no, "not found. Check if their name is there with name <name>.")
     name = input("Enter name : ")
     name = "name " + name
@@ -141,44 +141,57 @@ def _check_name(worksheet:Worksheet, word:str):
     if found == 0:
         print(name, "not found.")
 
-def _add(ws:Worksheet, word:str):
-    """Log the time when participants enter."""
+def _add_participant(workbook:Workbook, worksheet:Worksheet, word:str):
+    """Log the time when participants enter. 
+    
+    This function prints the details of the user"""
     try:
         reg_no = int(re.split("add", word)[1])
     except:
         return
-    for cell in ws['B']:
+    found = 0
+    for cell in ['B']:
         if cell.value == reg_no:
             row = cell.row
-            if ws.cell(row=row, column=4).value!=None:
+            if worksheet.cell(row=row, column=4).value!=None:
                 print("Already sent the participant")
-            elif ws.cell(row=row, column=3).value!=None:
+            elif worksheet.cell(row=row, column=3).value!=None:
                 print("Already logged in")
             else:
-                ws.cell(row=row, column=3, value=datetime.now())
-                for value in ws[cell.row]:
+                worksheet.cell(row=row, column=3, value=datetime.now())
+                for value in worksheet[cell.row]:
                     print(value.value)
+            found = 1
+    # If participant is not found, send message.
+    if found == 0:
+        print(reg_no, "not found.")
 
-def _send(wb:Workbook, ws:Worksheet, word:str):
+    try:
+        workbook.save("debate.xlsx")
+    except PermissionError:
+        print("Failed to save")
+
+def _send_participant(workbook:Workbook, worksheet:Worksheet, word:str):
+    """"""
     try:
         values = re.findall("\d+", word)
         reg_no = int(values[0])
         panel_room = int(values[1])
     except:
         return
-    for cell in ws['B']:
+    for cell in worksheet['B']:
         if cell.value == reg_no:
-            ws.cell(row=cell.row, column=4, value=datetime.now())
-            ws.cell(row=cell.row, column=5, value=panel_room)
-            for value in ws[cell.row]:
+            worksheet.cell(row=cell.row, column=4, value=datetime.now())
+            worksheet.cell(row=cell.row, column=5, value=panel_room)
+            for value in worksheet[cell.row]:
                 print(value.value)
             print("Sent", reg_no)
     try:
-        wb.save("debate.xlsx")
+        workbook.save("debate.xlsx")
     except PermissionError:
         print("Failed to save")
 
-def _change(ws:Worksheet):
+def _change_participant_details(worksheet:Worksheet):
     row = int(input("Enter row address : "))
     col = int(input("Enter column address : "))
     if col not in [1, 2, 5]:
@@ -189,11 +202,11 @@ def _change(ws:Worksheet):
         val = int(input("Enter reg no : "))
     elif col == 5:
         val = input("Enter class : ")
-    ws.cell(row=row, column=col, value=val)
-    for value in ws[row]:
+    worksheet.cell(row=row, column=col, value=val)
+    for value in worksheet[row]:
         print(value.value)
 
-def _save_wb(wb:Workbook, close:bool):
+def _save_workbook(workbook:Workbook, close:bool):
     try:
         os.system("taskkill/im EXCEL.EXE ")
     except:
@@ -205,7 +218,7 @@ def _save_wb(wb:Workbook, close:bool):
     # else: 
     #     sleep(1)
     try:
-        wb.save("debate.xlsx")
+        workbook.save("debate.xlsx")
     except PermissionError:
         print("Failed to save")
     else:
