@@ -143,7 +143,7 @@ def _check_name(worksheet:Worksheet, word:str):
             found = True
     if deleted:
         print("Rows were deleted, try again.")
-    elif found:
+    elif not found:
         print(name, "not found.")
 
 def _add_participant(workbook:Workbook, worksheet:Worksheet, word:str):
