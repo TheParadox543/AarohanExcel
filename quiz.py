@@ -3,8 +3,10 @@ import os
 from datetime import datetime
 from time import sleep
 
-import openpyxl
+# import openpyxl
 from openpyxl import load_workbook
+from openpyxl.workbook.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
 def main():
     wb = load_workbook("E:/quiz.xlsx")
